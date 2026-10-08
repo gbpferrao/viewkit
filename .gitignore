@@ -1,0 +1,8 @@
+app/node_modules/
+app/dist/
+app/public/codec/
+app/test-results/
+app/playwright-report/
+.env
+.env.*
+!.env.example

@@ -1,0 +1,38 @@
+import { test, expect } from '@playwright/test';
+import { resolve } from 'node:path';
+
+test('stage handles commit and cancel transforms; seek and frame step remain exact', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  await page.getByTestId('media-input').setInputFiles(resolve('../dev/plans/evidence/p01/source-a.mp4'));
+  await expect(page.locator('[data-source-id]')).toHaveCount(1);
+  await page.getByTitle('add to timeline at playhead').click();
+  await expect(page.locator('.stage-selection')).toHaveCount(1);
+  const before = (await page.locator('.stage-selection').boundingBox())!;
+  const stageBox = (await page.locator('.stage-screen').boundingBox())!;
+  await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2); await page.mouse.down();
+  await page.mouse.move(before.x + before.width / 2 + 30, before.y + before.height / 2 + 15, { steps: 8 }); await page.mouse.up();
+  expect(Number(await page.getByLabel('clip x', { exact: true }).inputValue())).toBeCloseTo(Math.round(30 / stageBox.width * 1280), 0);
+  await page.keyboard.press('Control+z'); await expect(page.getByLabel('clip x', { exact: true })).toHaveValue('0');
+  const knob = (await page.getByRole('button', { name: 'scale clip', exact: true }).last().boundingBox())!;
+  await page.mouse.move(knob.x + knob.width / 2, knob.y + knob.height / 2); await page.mouse.down();
+  await page.mouse.move(knob.x + knob.width / 2 + 25, knob.y + knob.height / 2 + 15, { steps: 8 }); await page.mouse.up();
+  expect(Number(await page.getByLabel('scale x', { exact: true }).inputValue())).toBeGreaterThan(1);
+  await page.keyboard.press('Control+z'); await expect(page.getByLabel('scale x', { exact: true })).toHaveValue('1.00');
+  const moved = (await page.locator('.stage-selection').boundingBox())!;
+  await page.mouse.move(moved.x + moved.width / 2, moved.y + moved.height / 2); await page.mouse.down();
+  await page.mouse.move(moved.x + moved.width / 2 + 60, moved.y + moved.height / 2 + 20, { steps: 8 }); await page.keyboard.press('Escape'); await page.mouse.up();
+  const clip = (await page.locator('[data-clip-id]').first().boundingBox())!; await page.mouse.click(clip.x + 40, clip.y + 12);
+  await expect(page.getByLabel('clip x', { exact: true })).toHaveValue('0');
+  await page.getByLabel('playhead', { exact: true }).fill('2');
+  await expect(page.locator('.timecode')).toHaveText('00:00:02:00');
+  await page.getByTitle('next frame', { exact: true }).click(); await expect(page.locator('.timecode')).toHaveText('00:00:02:01');
+  await page.getByTitle('previous frame', { exact: true }).click(); await expect(page.locator('.timecode')).toHaveText('00:00:02:00');
+  await page.locator('.stage-video').evaluate(element => element.dispatchEvent(new Event('error')));
+  await expect(page.locator('.decode-badge')).toContainText('preview decode failed');
+  await expect(page.locator('[data-clip-id]')).toHaveCount(1);
+  await page.getByTitle('go to end', { exact: true }).click(); await expect(page.locator('.timecode')).toHaveText('00:00:05:00');
+  await page.getByRole('button', { name: 'clear project', exact: true }).click(); await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0); await expect(page.locator('[data-clip-id]')).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
