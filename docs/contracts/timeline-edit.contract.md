@@ -1,5 +1,10 @@
 # timeline edit contract v1
 
+lane names are project metadata, independent of clip editing history. default names are lane 1 through lane 10.
+rename trims whitespace and control characters, limits names to 80 characters, and preserves the old name for empty input.
+names persist in the existing browser project record; older records without names retain defaults. new project resets all names.
+the frozen lane column displays plain names at its top left. double-click, enter, or F2 opens inline editing; enter/blur commits and escape cancels.
+
 Executable authority: app/src/timeline/timeline.model.ts, edit-timeline.workflow.ts and shared/frame-math.contract.ts.
 
 Time is seconds on an exact 24 fps grid. Lanes are 0–9. Clip duration is at least one frame; offset plus duration cannot exceed source duration.

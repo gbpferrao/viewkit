@@ -4,10 +4,17 @@ import { defaultStage } from '../stage/stage-size.model';
 import type { StageSize } from '../stage/stage-size.model';
 import { cloneClips, timelineEnd } from './timeline.model';
 import type { Clip, MediaSource } from './timeline.model';
+import { LANE_COUNT } from '../shared/frame-math.contract';
 
 export interface ProjectSnapshot { clips: Clip[]; stage: StageSize }
 export const useProject = defineStore('project', () => {
   const name = ref('untitled project');
+  const laneNames = ref(Array.from({ length: LANE_COUNT }, (_, index) => 'lane ' + (index + 1)));
+  function renameLane(index: number, value: string) {
+    if (!Number.isInteger(index) || index < 0 || index >= LANE_COUNT) return;
+    const label = value.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 80);
+    if (label) laneNames.value[index] = label;
+  }
   const sources = ref<MediaSource[]>([]);
   const clips = ref<Clip[]>([]);
   const stage = ref(defaultStage());
@@ -40,12 +47,13 @@ export const useProject = defineStore('project', () => {
   function reset() {
     generation.value++;
     name.value = 'untitled project';
+    laneNames.value = Array.from({ length: LANE_COUNT }, (_, index) => 'lane ' + (index + 1));
     for (const source of sources.value) URL.revokeObjectURL(source.url);
     sources.value = []; clips.value = []; stage.value = defaultStage(); selection.value = [];
     snapping.value = true; autofill.value = false; importing.value = false;
     message.value = 'fresh project. import something to begin.';
   }
-  return { name, rename, sources, clips, stage, selection, selected, snapping, autofill, message, generation, importing, end, snapshot, restore, addSource, renameSource, removeSource, select, reset };
+  return { name, rename, laneNames, renameLane, sources, clips, stage, selection, selected, snapping, autofill, message, generation, importing, end, snapshot, restore, addSource, renameSource, removeSource, select, reset };
 });
 export type ProjectStore = ReturnType<typeof useProject>;
 

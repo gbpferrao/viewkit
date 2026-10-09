@@ -70,6 +70,11 @@ export async function restoreStoredProject(project: ProjectStore) {
     }
     validateClips(record.clips, sources);
     project.rename(record.name);
+    if (Array.isArray(record.laneNames)) {
+      project.laneNames.forEach((_, index) => {
+        if (typeof record.laneNames[index] === 'string') project.renameLane(index, record.laneNames[index]);
+      });
+    }
     for (const source of sources) project.addSource(source);
     project.restore({ clips: record.clips, stage: record.stage });
     project.snapping = record.snapping; project.autofill = record.autofill;
@@ -89,7 +94,7 @@ export function createProjectStorage(project: ProjectStore) {
     window.clearTimeout(timer); timer = 0;
     const generation = project.generation;
     const snapshot = project.snapshot();
-    const record = { version: 1, name: project.name, ...snapshot, snapping: project.snapping, autofill: project.autofill };
+    const record = { version: 1, name: project.name, laneNames: [...project.laneNames], ...snapshot, snapping: project.snapping, autofill: project.autofill };
     const sources = project.sources.map(({ id, name, kind, duration, width, height, file }) =>
       ({ id, name, kind, duration, width, height, file }));
     queue = queue.then(async () => {
@@ -115,7 +120,7 @@ export function createProjectStorage(project: ProjectStore) {
       if (generation === project.generation) project.message = 'browser save failed. free some storage; this project is still open.';
     });
   }
-  const stop = watch(() => [project.name, project.clips, project.stage, project.snapping, project.autofill,
+  const stop = watch(() => [project.name, project.laneNames, project.clips, project.stage, project.snapping, project.autofill,
     project.sources.map(source => [source.id, source.name])], () => {
     window.clearTimeout(timer); timer = window.setTimeout(save, 150);
   }, { deep: true });
