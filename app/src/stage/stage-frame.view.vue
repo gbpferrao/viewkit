@@ -15,32 +15,54 @@ import type { RenderLayer } from './gpu-compositor.resource';
 const { project, stage, playback, preview } = useEditor();
 const viewport = ref<HTMLElement>();
 const previewCanvas = ref<HTMLCanvasElement>();
+const fallbackCanvas = ref<HTMLCanvasElement>();
 const gpuPreview = ref(false);
+const fallbackPreview = ref(false);
 let compositor: Awaited<ReturnType<typeof createGpuCompositor>> | null = null;
 let previewFrame = 0, disposed = false;
 const sceneVideos = new Map<string, HTMLVideoElement>();
 const videoCallbacks = new Map<string, number>();
 function queuePreview() {
-  if (!compositor || previewFrame || disposed) return;
+  if (previewFrame || disposed) return;
   previewFrame = requestAnimationFrame(drawPreview);
 }
 function drawPreview() {
   previewFrame = 0;
-  if (!compositor || !previewCanvas.value || disposed) return;
+  if (!previewCanvas.value || !fallbackCanvas.value || disposed) return;
   try {
-    const canvas = previewCanvas.value, pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+    const layers: RenderLayer[] = [];
+    for (const clip of preview.value) {
+      const source = sourceFor(clip);
+      if (source.kind !== 'video') continue;
+      const video = sceneVideos.get(clip.id);
+      // Submit complete scenes only. A pending seek must not erase the last decoded scene.
+      if (!video || video.readyState < 2 || video.seeking) return;
+      layers.push({ id: clip.id, source: video, width: source.width, height: source.height, transform: transformFor(clip) });
+    }
+    const canvas = compositor ? previewCanvas.value : fallbackCanvas.value;
+    const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
     const width = Math.max(1, Math.min(project.stage.width, Math.round(project.stage.width * scale.value * pixelRatio)));
     const height = Math.max(1, Math.round(width * project.stage.height / project.stage.width));
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
-    const layers: RenderLayer[] = [];
-    for (const clip of preview.value) {
-      const video = sceneVideos.get(clip.id), source = sourceFor(clip);
-      if (source.kind !== 'video' || !video || video.readyState < 2 || video.seeking) continue;
-      layers.push({ id: clip.id, source: video, width: source.width, height: source.height, transform: transformFor(clip) });
+    if (compositor) { compositor.render(layers, project.stage); gpuPreview.value = true; fallbackPreview.value = false; }
+    else {
+      const context = canvas.getContext('2d');
+      if (!context) return;
+      context.fillStyle = '#000000'; context.fillRect(0, 0, width, height);
+      for (const layer of layers) {
+        const size = videoWorldSize(layer), transform = layer.transform;
+        context.save(); context.scale(width / project.stage.width, height / project.stage.height);
+        context.translate(project.stage.width / 2 + transform.x, project.stage.height / 2 + transform.y);
+        context.rotate(transform.rotation * Math.PI / 180); context.scale(transform.scaleX, transform.scaleY);
+        context.drawImage(layer.source as HTMLVideoElement, -size.width / 2, -size.height / 2, size.width, size.height);
+        context.restore();
+      }
+      fallbackPreview.value = true;
     }
-    compositor.render(layers, project.stage); gpuPreview.value = true;
   } catch {
-    gpuPreview.value = false; compositor.dispose(); compositor = null;
+    if (compositor) {
+      gpuPreview.value = false; compositor.dispose(); compositor = null; queuePreview();
+    }
   }
 }
 function observeVideo(id: string, video: HTMLVideoElement) {
@@ -115,7 +137,8 @@ const selectionLayers = computed(() => preview.value.filter(clip => sourceFor(cl
 })));
 const inactiveSelectionCount = computed(() => project.selected.filter(clip => !activeClipIds.value.has(clip.id)).length);
 const audioSelectionCount = computed(() => project.selected.filter(clip => sourceFor(clip).kind === 'audio').length);
-watch(() => [preview.value, project.stage, draftClipId.value, draft.value, available.value, playback.time.value], queuePreview);
+watch(() => [preview.value, project.stage, draftClipId.value, draft.value, available.value, playback.time.value], queuePreview, { flush: 'post' });
+watch(() => project.generation, () => { gpuPreview.value = false; fallbackPreview.value = false; queuePreview(); });
 function videoStyle(clip: Clip) {
   const size = videoWorldSize(sourceFor(clip)), transform = transformFor(clip);
   return { width: size.width + 'px', height: size.height + 'px',
@@ -172,7 +195,7 @@ onMounted(() => {
   void createGpuCompositor(previewCanvas.value!).then(renderer => {
     if (disposed) { renderer.dispose(); return; }
     compositor = renderer; queuePreview();
-  }).catch(() => { gpuPreview.value = false; });
+  }).catch(() => { gpuPreview.value = false; queuePreview(); });
 });
 window.addEventListener('pointermove', move); window.addEventListener('pointerup', end); window.addEventListener('keydown', key);
 window.addEventListener('pointercancel', cancelPointer); window.addEventListener('blur', cancel);
@@ -198,6 +221,7 @@ onBeforeUnmount(() => {
           </template>
         </div>
         <canvas ref="previewCanvas" class="stage-gpu-preview" :class="{ ready: gpuPreview }" aria-hidden="true"></canvas>
+        <canvas ref="fallbackCanvas" class="stage-gpu-preview" :class="{ ready: fallbackPreview && !gpuPreview }" aria-hidden="true"></canvas>
         <span v-if="!project.clips.length" class="stage-placeholder"><span class="stage-placeholder-mark"><InterfaceIcon name="play-btn"/></span>make room for your next cut</span>
       </div>
       <div class="stage-handle-layer" :style="{ width: project.stage.width * scale + 'px', height: project.stage.height * scale + 'px' }">

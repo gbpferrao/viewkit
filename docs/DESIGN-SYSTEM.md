@@ -351,6 +351,8 @@ only a single active selected video exposes transform handles. shared bounds and
 
 ## timeline video thumbnails
 
+stage scrubbing holds the last complete decoded scene while the next frame loads. replace it when all active videos are ready. intentional gaps remain black.
+
 video clips show a linear frame strip behind their name and duration: 64 px thumbnails with 4 px gaps. source-anchored dyadic detail levels reuse samples across zoom levels. placement and restoration seed four overview samples per used video. visible tiles immediately reuse the nearest cached frame; missing detail decodes after navigation settles for 120 ms. moving, trimming, or zooming preserves cached imagery instead of clearing the strip. images retain their aspect ratio inside a dark tile; a dark label background preserves readability. one silent decoder and a shared 256-image cache bound resources. audio clips retain their waveform texture. thumbnails are decorative and cannot intercept editing gestures.
 
 ## playhead split action

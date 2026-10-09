@@ -1,5 +1,8 @@
 # stage edit contract v1
 
+preview presentation holds the last complete decoded scene while any active video is loading or seeking. readiness events submit the replacement scene atomically.
+both WebGPU and Canvas2D fallback preserve their last rendered canvas during decode waits. intentional empty or audio-only times render black; new project clears held imagery.
+
 Executable authority: app/src/stage/stage-size.model.ts and stage-layout.workflow.ts.
 
 Initial and reset dimensions are 1280x720. Dimensions are integers within width 320–3840 and height 240–2160.
