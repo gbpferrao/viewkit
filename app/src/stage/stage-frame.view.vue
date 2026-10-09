@@ -285,14 +285,14 @@ onBeforeUnmount(() => {
       <span v-if="inactiveSelectionCount || audioSelectionCount" class="stage-selection-status" role="status"><span v-if="inactiveSelectionCount"><InterfaceIcon name="clock"/>{{ inactiveSelectionCount }} selected outside playhead time</span><span v-if="audioSelectionCount"><InterfaceIcon name="music-note-beamed"/>{{ audioSelectionCount }} audio selected</span></span>
       <span v-if="busy" class="decode-badge" role="status">buffering preview…</span>
       <span v-else-if="playback.error.value" class="decode-badge" role="status">{{ playback.error.value }}</span>
-      <div ref="controls" class="stage-controls" :class="{ visible: controlsNearby || controlsInteracting }" role="group" aria-label="playback controls" @pointerdown="controlsInteracting = true">
-    <div class="stage-zoom-menu-wrap">
-      <button type="button" class="stage-zoom-trigger" aria-haspopup="menu" :aria-expanded="zoomMenuOpen" aria-label="stage zoom" @click.stop="zoomMenuOpen = !zoomMenuOpen">{{ zoomLabel }}<span aria-hidden="true">⌃</span></button>
-      <div v-if="zoomMenuOpen" class="stage-zoom-menu" role="menu" aria-label="stage zoom levels">
-        <button type="button" role="menuitem" @click="setZoom(1)">fit viewport</button>
-        <button v-for="option in zoomOptions" :key="option" type="button" role="menuitemradio" :aria-checked="Math.abs(zoom - option) < .001" @click="setZoom(option)">{{ Math.round(option * 100) }}%</button>
+      <div class="stage-zoom-menu-wrap">
+        <button type="button" class="stage-zoom-trigger" aria-haspopup="menu" :aria-expanded="zoomMenuOpen" aria-label="stage zoom" @click.stop="zoomMenuOpen = !zoomMenuOpen">{{ zoomLabel }}<span aria-hidden="true">⌃</span></button>
+        <div v-if="zoomMenuOpen" class="stage-zoom-menu" role="menu" aria-label="stage zoom levels">
+          <button type="button" role="menuitem" @click="setZoom(1)">fit viewport</button>
+          <button v-for="option in zoomOptions" :key="option" type="button" role="menuitemradio" :aria-checked="Math.abs(zoom - option) < .001" @click="setZoom(option)">{{ Math.round(option * 100) }}%</button>
+        </div>
       </div>
-    </div>
+      <div ref="controls" class="stage-controls" :class="{ visible: controlsNearby || controlsInteracting }" role="group" aria-label="playback controls" @pointerdown="controlsInteracting = true">
     <div class="transport">
       <span class="timecode">{{ formatTime(time) }}</span>
       <div class="transport-buttons"><ActionButton variant="quiet" size="compact" shape="circle" class="icon-button" title="go to start" aria-label="go to start" @click="playback.pause(); playback.seek(0)"><InterfaceIcon name="skip-start-fill"/></ActionButton><ActionButton variant="quiet" size="compact" shape="circle" class="icon-button" title="previous frame" aria-label="previous frame" @click="playback.step(-1)"><InterfaceIcon name="caret-left-fill"/></ActionButton><ActionButton variant="primary" size="regular" shape="circle" class="play-button" :aria-label="playing ? 'pause' : 'play'" @click="playback.toggle()"><InterfaceIcon :name="playing ? 'pause-fill' : 'play-fill'"/></ActionButton><ActionButton variant="quiet" size="compact" shape="circle" class="icon-button" title="next frame" aria-label="next frame" @click="playback.step(1)"><InterfaceIcon name="caret-right-fill"/></ActionButton><ActionButton variant="quiet" size="compact" shape="circle" class="icon-button" title="go to end" aria-label="go to end" @click="playback.pause(); playback.seek(project.end)"><InterfaceIcon name="skip-end-fill"/></ActionButton></div>
