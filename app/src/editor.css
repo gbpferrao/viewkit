@@ -102,7 +102,7 @@ kbd { border: 1px solid #272727; background: #181818; border-radius: 4px; paddin
 .stage-zoom-trigger { display: flex; align-items: center; gap: 5px; min-width: 58px; padding: 4px 6px; border: 1px solid #303030; border-radius: 4px; background: #171717; color: #a9a9a9; font: inherit; font-size: 10px; cursor: pointer; }
 .stage-zoom-trigger:hover, .stage-zoom-trigger:focus-visible { color: #eeeeee; border-color: #5b5b5b; }
 .stage-zoom-trigger span { color: #777777; font-size: 12px; line-height: 8px; }
-.stage-zoom-menu { position: absolute; left: 0; bottom: calc(100% + 5px); display: grid; min-width: 116px; gap: 2px; padding: 4px; border: 1px solid #303030; border-radius: 6px; background: #151515; box-shadow: 0 5px 16px #00000088; z-index: 20; }
+.stage-zoom-menu { position: absolute; right: 0; bottom: calc(100% + 5px); max-width: calc(100vw - 24px); display: grid; min-width: 116px; gap: 2px; padding: 4px; border: 1px solid #303030; border-radius: 6px; background: #151515; box-shadow: 0 5px 16px #00000088; z-index: 20; }
 .stage-zoom-menu button { padding: 6px 8px; border: 0; border-radius: 3px; background: transparent; color: #999999; text-align: left; font: inherit; font-size: 10px; cursor: pointer; }
 .stage-zoom-menu button:hover, .stage-zoom-menu button:focus-visible { background: #252525; color: #ffffff; }
 .transport { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
