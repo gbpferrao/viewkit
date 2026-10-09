@@ -66,6 +66,8 @@ show labels for actions whose meaning is difficult to infer from an icon.
 
 ### dimensions and spacing
 
+lane title buttons use off-white (#d7d7d7) text normally and full white on hover or keyboard focus. pressing outside the active field saves and closes editing; escape cancels.
+
 lane names are plain text at the top left of the frozen timeline column, without icons or dots. keep 16 px left clearance for the overlay scrollbar and 7 px top spacing. long names truncate; hover exposes the full name. double-click edits inline; keyboard enter or F2 starts editing, enter or blur saves, and escape cancels. names save with the project and reset on new project.
 
 | token or geometry | value | use |

@@ -23,6 +23,13 @@ function commitLaneName() {
   if (editingLane.value === null) return;
   project.renameLane(editingLane.value, laneNameDraft.value); editingLane.value = null;
 }
+function outsideLaneName(event: PointerEvent) {
+  if (editingLane.value === null) return;
+  const input = document.getElementById('lane-name-' + editingLane.value);
+  if (!input?.contains(event.target as Node)) commitLaneName();
+}
+window.addEventListener('pointerdown', outsideLaneName, true);
+onBeforeUnmount(() => window.removeEventListener('pointerdown', outsideLaneName, true));
 watch(() => project.generation, () => { editingLane.value = null; });
 const thumbnails = createVideoThumbnails();
 watch(() => project.generation, () => { thumbnails.reset(); });

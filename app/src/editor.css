@@ -151,7 +151,7 @@ label input { margin-top: 7px; }
 .timeline-lane { display: flex; }
 .timeline-lane:nth-child(even) { background: #111111; }
 .lane-label { width: 86px; flex-shrink: 0; position: sticky; left: 0; z-index: 10; border-right: 1px solid #222222; border-bottom: 1px solid #222222; background: #151515; display: flex; align-items: flex-start; padding: 7px 6px 0 16px; }
-button.lane-name, input.lane-name-input { width: 100%; min-width: 0; height: 22px; margin: 0; padding: 2px 0; border: 0; border-radius: 0; background: transparent; color: #9a9a9a; font-size: 10px; font-weight: 500; line-height: 18px; text-align: left; }
+button.lane-name, input.lane-name-input { width: 100%; min-width: 0; height: 22px; margin: 0; padding: 2px 0; border: 0; border-radius: 0; background: transparent; color: #d7d7d7; font-size: 10px; font-weight: 500; line-height: 18px; text-align: left; }
 button.lane-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 button.lane-name:hover, button.lane-name:focus-visible { color: #ffffff; background: transparent; }
 input.lane-name-input { background: #101010; color: #ffffff; }
