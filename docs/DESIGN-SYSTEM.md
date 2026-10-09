@@ -202,6 +202,7 @@ the timeline's top divider resizes only from the first 48 px of its 1 px separat
 clicking or dragging the time ruler scrubs the playhead without changing selection. the playhead head supports the same drag. marquee selection starts only in the lane area and stays below the ruler when dragged upward; ruler scrollbar and menu controls retain their own gestures.
 
 timeline navigation uses one reusable zoom-scrollbar view for both axes, leaving native wheel and trackpad scrolling available.
+the component owns its scoped bar, handle, and hover styles; callers own placement. each lighter endpoint dot and its translucent circular hover halo share the same 50% center anchor, preserving concentric alignment on both axes.
 middle-button dragging pans horizontally and vertically without changing clips, selection, playback position, or history.
 normal wheel input scrolls vertically; horizontal trackpad deltas also pan horizontally.
 ctrl + wheel changes horizontal zoom around the pointer's time position, keeping it fixed under the cursor subject to scroll bounds.

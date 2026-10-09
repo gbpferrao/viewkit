@@ -109,3 +109,33 @@ onBeforeUnmount(release);
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Overlay navigation stays independent of timeline content size. Handles resize the visible interval. */
+.zoom-scrollbar { opacity: .12; touch-action: none; user-select: none; transition: opacity .18s ease; }
+.zoom-scrollbar:hover, .zoom-scrollbar:has(:focus-visible), .zoom-scrollbar.dragging { opacity: 1; }
+.zoom-scroll-thumb { position: absolute; background: #858585; border: 0; border-radius: 5px; box-shadow: 0 1px 5px #00000066; }
+.zoom-scrollbar.horizontal .zoom-scroll-thumb { top: 2px; height: 10px; min-width: 48px; max-width: 100%; }
+.zoom-scrollbar.vertical .zoom-scroll-thumb { left: 2px; width: 10px; min-height: 48px; max-height: 100%; }
+.zoom-scroll-pan { position: absolute; cursor: grab; outline-offset: 2px; }
+.zoom-scrollbar.horizontal .zoom-scroll-pan { inset: -2px 16px -10px; }
+.zoom-scrollbar.vertical .zoom-scroll-pan { inset: 16px -12px 16px -2px; }
+.zoom-scrollbar.dragging .zoom-scroll-pan { cursor: grabbing; }
+button.zoom-scroll-end { position: absolute; z-index: 1; width: 22px; height: 22px; border: 0; padding: 0; min-width: 0; background: transparent; border-radius: 50%; }
+.zoom-scroll-end::after { content: ''; position: absolute; width: 6px; height: 6px; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #b5b5b5; border-radius: 50%; pointer-events: none; }
+.zoom-scrollbar.horizontal .zoom-scroll-end { top: -6px; cursor: ew-resize; }
+.zoom-scrollbar.horizontal .zoom-scroll-end.start { left: -6px; }
+.zoom-scrollbar.horizontal .zoom-scroll-end.end { right: -6px; }
+.zoom-scrollbar.vertical .zoom-scroll-end { left: -6px; cursor: ns-resize; }
+.zoom-scrollbar.vertical .zoom-scroll-end.start { top: -6px; }
+.zoom-scrollbar.vertical .zoom-scroll-end.end { bottom: -6px; }
+button.zoom-scroll-end::before { content: ''; position: absolute; top: 50%; left: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); border-radius: 50%; background: #ffffff25; opacity: 0; pointer-events: none; }
+button.zoom-scroll-end:hover, button.zoom-scroll-end:active, button.zoom-scroll-end.handle-dragging { background: transparent; }
+button.zoom-scroll-end:hover::before, button.zoom-scroll-end:active::before, button.zoom-scroll-end.handle-dragging::before { opacity: 1; }
+.zoom-scrollbar .zoom-scroll-pan, .zoom-scrollbar button.zoom-scroll-end { outline: none; }
+.zoom-scrollbar:not(.pointer-focus) .zoom-scroll-pan:focus-visible { background: #ffffff12; border-radius: 3px; }
+.zoom-scrollbar:not(.pointer-focus) button.zoom-scroll-end:focus-visible::before { opacity: 1; }
+.zoom-scrollbar.pointer-focus:not(:hover):not(.dragging) { opacity: .12; }
+@media (hover: none) { .zoom-scrollbar { opacity: .8; } }
+@media (prefers-reduced-motion: reduce) { .zoom-scrollbar { transition: none; } }
+</style>
