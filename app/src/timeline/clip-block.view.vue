@@ -2,7 +2,7 @@
 import InterfaceIcon from '../interface/interface-icon.view.vue';
 import type { Clip, MediaSource } from './timeline.model';
 import { formatTime } from '../shared/frame-math.contract';
-import { computed, watch } from 'vue';
+import { computed } from 'vue';
 import type { VideoThumbnails } from '../media/video-thumbnails.resource';
 const props = defineProps<{ clip: Clip; source: MediaSource; selected: boolean; pixelsPerSecond: number; row: number; clipHeight: number; visibleLeft: number; visibleRight: number; thumbnails: VideoThumbnails }>();
 const cells = computed(() => {
@@ -11,32 +11,15 @@ const cells = computed(() => {
   const origin = props.clip.start * props.pixelsPerSecond;
   const first = Math.max(0, Math.floor((props.visibleLeft - origin) / 68));
   const last = Math.min(Math.ceil(width / 68), Math.ceil((props.visibleRight - origin) / 68));
-  // Source-anchored dyadic sampling reuses every other sample between adjacent detail levels.
-  const stepFrames = 2 ** Math.max(0, Math.round(Math.log2(68 * 24 / props.pixelsPerSecond)));
   return Array.from({ length: Math.max(0, last - first) }, (_, index) => {
     const slot = first + index, left = slot * 68;
     const sourceTime = props.clip.offset + Math.min(props.clip.duration - 1 / 24, (left + 32) / props.pixelsPerSecond);
-    const time = Math.round(sourceTime * 24 / stepFrames) * stepFrames / 24;
-    return { slot, left, time };
+    return { slot, left, time: sourceTime };
   });
 });
 const displayedCells = computed(() => {
-  return cells.value.map(cell => ({ ...cell, image: props.thumbnails.peek(props.source, cell.time) }));
+  return cells.value.map(cell => ({ ...cell, image: props.thumbnails.peek(props.source, cell.time, 68 / props.pixelsPerSecond) }));
 });
-const sampleTimes = computed(() => [...new Set(cells.value.map(cell => cell.time))].join(','));
-watch([sampleTimes, () => props.source.url], (_, __, onCleanup) => {
-  let current = true;
-  const source = props.source;
-  const times = [...new Set(cells.value.map(cell => cell.time))];
-  // Keep cached imagery during navigation; only decode the settled viewport's missing detail.
-  const timer = window.setTimeout(async () => {
-    for (const time of times) {
-      await props.thumbnails.request(source, time, () => current);
-      if (!current) return;
-    }
-  }, 120);
-  onCleanup(() => { current = false; window.clearTimeout(timer); });
-}, { immediate: true });
 const emit = defineEmits<{ gesture: [event: PointerEvent, clip: Clip, edge: 'start' | 'end' | null] }>();
 </script>
 <template>

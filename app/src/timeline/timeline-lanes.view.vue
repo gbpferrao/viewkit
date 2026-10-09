@@ -33,19 +33,9 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', outsideLaneName,
 watch(() => project.generation, () => { editingLane.value = null; });
 const thumbnails = createVideoThumbnails();
 watch(() => project.generation, () => { thumbnails.reset(); });
-// Seed an overview when videos enter the timeline, including restored, placed, and duplicated clips.
-watch(() => JSON.stringify([...new Set(project.clips.map(clip => clip.sourceId))].sort()), (sourceIds, _, onCleanup) => {
-  let current = true; onCleanup(() => { current = false; });
-  const ids: string[] = JSON.parse(sourceIds);
-  const sources = project.sources.filter(source => ids.includes(source.id) && source.kind === 'video');
-  void (async () => {
-    for (const source of sources) {
-      for (let index = 0; index < 4; index++) {
-        await thumbnails.request(source, source.duration * index / 4, () => current);
-        if (!current) return;
-      }
-    }
-  })();
+// Import/restore prepares source sheets; removal releases them. Clip geometry never initiates decoding.
+watch(() => JSON.stringify(project.sources.map(source => source.url)), () => {
+  thumbnails.synchronize(project.sources);
 }, { immediate: true });
 const RULER_HEIGHT = 44;
 const DEFAULT_TIMELINE_SECONDS = 30;

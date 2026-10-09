@@ -1,9 +1,11 @@
 # timeline edit contract v1
 
-video preview samples use source-anchored dyadic detail levels, shared across clips and zoom levels. placement and restoration seed four overview frames per used video.
-visible tiles reuse the nearest cached source sample immediately; missing detail decodes after 120 ms of settled navigation.
-moving, resizing, trimming, and zooming never clear displayed frames. sampling remains bounded to visible tiles and a shared 256-frame cache.
-new project resets the decoder and cache; unmount disposes them. cached frames are approximate previews, independent of export fidelity.
+import and restoration prepare a complete source thumbnail sheet, published atomically. nested temporal LOD levels reuse subsets of the same images.
+zoom, scroll, movement, trimming, split, duplication, and clip remounts perform synchronous lookup only; they never decode new thumbnails.
+each source receives up to 33 evenly spaced 128×72 JPEGs. fair source budgets cap the total at 256 images across up to 256 videos.
+each data URL is capped at 32 KiB. initial generation may take time; very long videos use approximate temporal samples at high zoom.
+source deletion removes its sheet and cancels obsolete generation. new project and unmount clear everything; the decoder unloads after preparation.
+thumbnail sheets are memory-only derived data and never enter project snapshots, IndexedDB, exported videos, or downloaded project data.
 
 lane names are project metadata, independent of clip editing history. default names are lane 1 through lane 10.
 rename trims whitespace and control characters, limits names to 80 characters, and preserves the old name for empty input.
