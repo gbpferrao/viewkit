@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ActionButton from '../interface/action-button.view.vue';
 import InterfaceIcon from '../interface/interface-icon.view.vue';
+import EditableText from '../interface/editable-text.view.vue';
 import ZoomScrollbar from '../interface/zoom-scrollbar.view.vue';
 import type { ZoomScrollChange } from '../interface/zoom-scrollbar.contract';
 import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
@@ -12,25 +13,6 @@ import type { Clip, ClipReorder } from './timeline.model';
 import ClipBlock from './clip-block.view.vue';
 import { createVideoThumbnails } from '../media/video-thumbnails.resource';
 const { project, mediaDrag, playback, timeline } = useEditor();
-const editingLane = ref<number | null>(null), laneNameDraft = ref('');
-async function editLaneName(index: number) {
-  editingLane.value = index; laneNameDraft.value = project.laneNames[index];
-  await nextTick();
-  const input = document.getElementById('lane-name-' + index) as HTMLInputElement | null;
-  input?.focus(); input?.select();
-}
-function commitLaneName() {
-  if (editingLane.value === null) return;
-  project.renameLane(editingLane.value, laneNameDraft.value); editingLane.value = null;
-}
-function outsideLaneName(event: PointerEvent) {
-  if (editingLane.value === null) return;
-  const input = document.getElementById('lane-name-' + editingLane.value);
-  if (!input?.contains(event.target as Node)) commitLaneName();
-}
-window.addEventListener('pointerdown', outsideLaneName, true);
-onBeforeUnmount(() => window.removeEventListener('pointerdown', outsideLaneName, true));
-watch(() => project.generation, () => { editingLane.value = null; });
 const thumbnails = createVideoThumbnails();
 watch(() => project.generation, () => { thumbnails.reset(); });
 // Import/restore prepares source sheets; removal releases them. Clip geometry never initiates decoding.
@@ -462,10 +444,9 @@ onBeforeUnmount(() => { cancel(); window.removeEventListener('pointercancel', ca
     <div id="timeline-scroll-viewport" ref="scroller" class="timeline-scroll" @scroll.passive="queueViewport">
       <div ref="content" class="timeline-content" :style="{ width: contentWidth + 86 + 'px' }" @pointerdown="beginBackground">
         <div class="time-ruler" v-memo="[ticks, zoom, activeEnd]"><div class="ruler-corner">24 fps</div><div class="ruler-track"><div class="ruler-active-region" :style="{ width: activeWidth + 'px' }" aria-hidden="true"></div><span v-for="tick in ticks" :key="tick" class="ruler-tick" :class="{ 'future-tick': tick >= activeEnd }" :style="{ left: tick * zoom + 'px' }">{{ Math.floor(tick / 60) }}:{{ String(tick % 60).padStart(2, '0') }}</span><div v-if="activeEnd > 0" class="sequence-end-label" :style="{ left: activeWidth + 'px' }">end {{ formatTime(activeEnd) }}</div></div></div>
-        <div v-for="lane in visibleLanes" :key="lane.lane" v-memo="[lane, sourceById, selectedIds, zoom, clipHeight, activeWidth, project.laneNames[lane.lane], editingLane === lane.lane, editingLane === lane.lane ? laneNameDraft : null]" class="timeline-lane" :style="{ height: lane.height + 'px' }" :data-lane="lane.lane" @dragover="dragOver($event, lane.lane)" @drop="drop($event, lane.lane)">
-          <div class="lane-label" @pointerdown.stop @dblclick.stop="editLaneName(lane.lane)">
-            <input v-if="editingLane === lane.lane" :id="'lane-name-' + lane.lane" v-model="laneNameDraft" class="lane-name-input" aria-label="lane name" maxlength="80" @blur="commitLaneName" @keydown.stop @keydown.enter.prevent="commitLaneName" @keydown.esc.prevent="editingLane = null"/>
-            <button v-else class="lane-name" :title="project.laneNames[lane.lane]" :aria-label="'rename ' + project.laneNames[lane.lane]" @dblclick.stop="editLaneName(lane.lane)" @keydown.enter.stop.prevent="editLaneName(lane.lane)" @keydown.f2.stop.prevent="editLaneName(lane.lane)">{{ project.laneNames[lane.lane] }}</button>
+        <div v-for="lane in visibleLanes" :key="lane.lane" v-memo="[lane, sourceById, selectedIds, zoom, clipHeight, activeWidth, project.laneNames[lane.lane], project.generation]" class="timeline-lane" :style="{ height: lane.height + 'px' }" :data-lane="lane.lane" @dragover="dragOver($event, lane.lane)" @drop="drop($event, lane.lane)">
+          <div class="lane-label" @pointerdown.stop>
+            <EditableText class="lane-name" label="lane name" :model-value="project.laneNames[lane.lane]" :max-length="80" :reset-key="project.generation" @change="project.renameLane(lane.lane, $event)"/>
           </div>
           <div class="lane-track" :style="{ backgroundSize: gridSpacing + 'px 100%' }">
             <div class="lane-active-region" :style="{ width: activeWidth + 'px', backgroundSize: gridSpacing + 'px 100%' }" aria-hidden="true"></div>

@@ -11,7 +11,7 @@ lane names are project metadata, independent of clip editing history. default na
 rename trims whitespace and control characters, limits names to 80 characters, and preserves the old name for empty input.
 names persist in the existing browser project record; older records without names retain defaults. new project resets all names.
 the frozen lane column displays plain names at its top left. double-click, enter, or F2 opens inline editing; enter/blur commits and escape cancels.
-editing is available for every lane, including empty lanes. lane render caching includes its name, edit mode, and active name draft.
+editing is available for every lane, including empty lanes. the shared editable-text view owns edit mode and draft state; lane render caching includes its name and project generation.
 pointer presses anywhere outside the active name field save and exit editing, including controls that retain pointer focus. escape discards the draft and exits.
 
 Executable authority: app/src/timeline/timeline.model.ts, edit-timeline.workflow.ts and shared/frame-math.contract.ts.

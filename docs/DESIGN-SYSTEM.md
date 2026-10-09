@@ -66,6 +66,8 @@ show labels for actions whose meaning is difficult to infer from an icon.
 
 ### dimensions and spacing
 
+project, media, and lane titles share `editable-text.view.vue`. double-click enters a focused text field with the current name selected. enter, blur, or outside pointer press saves; escape cancels. keyboard enter or F2 also starts editing. empty names preserve the previous value. the shared component owns draft state, focus, dismissal, text colors, and field appearance; feature owners supply labels, length limits, persistence actions, and placement. project reset discards active drafts.
+
 the timeline split button reveals off-white (#d7d7d7) when the pointer approaches its bottom playhead area. only direct button hover changes its fill to full white. reveal opacity and button hover color remain independent.
 
 lane title buttons use off-white (#d7d7d7) text normally and full white on hover or keyboard focus. pressing outside the active field saves and closes editing; escape cancels.

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ActionButton from './interface/action-button.view.vue';
 import InterfaceIcon from './interface/interface-icon.view.vue';
+import EditableText from './interface/editable-text.view.vue';
 import { computed, provide, onBeforeUnmount, ref, watch, nextTick } from 'vue';
 import { createEditor, editorKey } from './app.composition';
 import { bindShortcuts } from './shared/shortcut-keys.adapter';
@@ -64,7 +65,6 @@ window.addEventListener('resize', resizeWindow);
 window.addEventListener('blur', cancelTimelineResize);
 const confirmClear = ref(false), showHelp = ref(false);
 const mainMenuOpen = ref(false), mainMenuRoot = ref<HTMLElement>();
-const projectNameDraft = ref(editor.project.name);
 const hoverTip = ref(''), focusTip = ref(''), recentNotice = ref('');
 let noticeTimer = 0;
 watch(() => editor.project.message, message => {
@@ -113,9 +113,6 @@ const footerTip = computed(() => {
   if (editor.project.selection.length === 1) return 'drag ends to trim, or edit properties in objects.';
   return 'select a clip to edit it, or drag across the timeline to select several.';
 });
-watch(() => editor.project.name, name => { projectNameDraft.value = name; });
-function commitProjectName() { editor.project.rename(projectNameDraft.value); projectNameDraft.value = editor.project.name; }
-function cancelProjectName(event: KeyboardEvent) { projectNameDraft.value = editor.project.name; (event.target as HTMLInputElement).blur(); }
 async function openMainMenu() {
   mainMenuOpen.value = true;
   await nextTick(); mainMenuRoot.value?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
@@ -174,7 +171,7 @@ onBeforeUnmount(() => { cancelTimelineResize(); window.removeEventListener('resi
         <!-- Replace this text with a wordmark.webp image when the brand asset is available. -->
         <span class="brand-wordmark" role="img" aria-label="viewkit">viewkit</span>
       </div>
-      <input class="project-name" aria-label="project name" title="rename project" v-model="projectNameDraft" maxlength="80" spellcheck="false" @blur="commitProjectName" @keydown.enter.prevent="($event.target as HTMLInputElement).blur()" @keydown.esc.stop.prevent="cancelProjectName"/>
+      <EditableText class="project-name" label="project name" :model-value="editor.project.name" :max-length="80" :reset-key="editor.project.generation" @change="editor.project.rename"/>
       <div class="header-actions">
         <div class="header-history" role="group" aria-label="edit history">
           <ActionButton variant="quiet" size="regular" shape="square" title="undo (ctrl Z)" aria-label="undo" :disabled="!editor.history.past.value.length" @click="editor.history.undo()"><InterfaceIcon name="arrow-counterclockwise"/></ActionButton>

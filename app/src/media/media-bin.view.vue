@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ActionButton from '../interface/action-button.view.vue';
 import InterfaceIcon from '../interface/interface-icon.view.vue';
+import EditableText from '../interface/editable-text.view.vue';
 import { ref, nextTick, watch, onBeforeUnmount } from 'vue';
 import { useEditor } from '../app.composition';
 import { formatTime } from '../shared/frame-math.contract';
@@ -35,7 +36,8 @@ function dropFiles(event: DragEvent) {
 window.addEventListener('drop', clearFileDrop);
 window.addEventListener('dragend', clearFileDrop);
 window.addEventListener('blur', clearFileDrop);
-const menuId = ref<string | null>(null), editingId = ref<string | null>(null), nameDraft = ref('');
+const menuId = ref<string | null>(null);
+const nameEditors = new Map<string, InstanceType<typeof EditableText>>();
 function card(id: string) { return panel.value?.querySelector<HTMLElement>(`[data-source-id="${id}"]`); }
 async function toggleMenu(id: string) {
   menuId.value = menuId.value === id ? null : id;
@@ -44,11 +46,8 @@ async function toggleMenu(id: string) {
 function closeMenu(focus = false) { const id = menuId.value; menuId.value = null; if (focus && id) card(id)?.querySelector<HTMLButtonElement>('.source-options-trigger')?.focus(); }
 async function rename(id: string) {
   const source = project.sources.find(item => item.id === id); if (!source) return;
-  closeMenu(); editingId.value = id; nameDraft.value = source.name;
-  await nextTick(); const input = card(id)?.querySelector<HTMLInputElement>('.source-name-input'); input?.focus(); input?.select();
+  closeMenu(); await nextTick(); nameEditors.get(id)?.begin();
 }
-function commitName() { if (!editingId.value) return; project.renameSource(editingId.value, nameDraft.value); editingId.value = null; }
-function nameKey(event: KeyboardEvent) { if (event.key === 'Enter') { event.preventDefault(); commitName(); } else if (event.key === 'Escape') { event.preventDefault(); editingId.value = null; } }
 function menuKey(event: KeyboardEvent) {
   if (event.key === 'Escape') { event.preventDefault(); closeMenu(true); }
   else if (event.key === 'Tab') closeMenu();
@@ -59,9 +58,9 @@ function menuKey(event: KeyboardEvent) {
   }
 }
 function outside(event: PointerEvent) { if (!(event.target as HTMLElement).closest('.source-options')) closeMenu(); }
-function deleteMedia(id: string) { closeMenu(); if (editingId.value === id) editingId.value = null; removeMedia(id); }
+function deleteMedia(id: string) { closeMenu(); removeMedia(id); }
 function addMedia(id: string) { closeMenu(); timeline.place(id, playback.time.value, 0); }
-watch(() => project.generation, () => { closeMenu(); editingId.value = null; });
+watch(() => project.generation, () => closeMenu());
 window.addEventListener('pointerdown', outside);
 onBeforeUnmount(() => {
   window.removeEventListener('pointerdown', outside); mediaDrag.value = null;
@@ -72,7 +71,7 @@ function pick(event: Event) {
   if (input.files) void importer.importFiles([...input.files]);
   input.value = '';
 }
-function drag(event: DragEvent, id: string) { if (editingId.value || (event.target as HTMLElement).closest('button,input')) { event.preventDefault(); return; } closeMenu(); mediaDrag.value = id; event.dataTransfer?.setData('application/x-viewkit-source', id); if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy'; }
+function drag(event: DragEvent, id: string) { if ((event.target as HTMLElement).closest('button,input,.editable-text')) { event.preventDefault(); return; } closeMenu(); mediaDrag.value = id; event.dataTransfer?.setData('application/x-viewkit-source', id); if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy'; }
 </script>
 <template>
   <aside ref="panel" class="media-panel" :class="{ 'file-drop-active': fileDropActive }" @dragenter="enterFiles" @dragover="overFiles" @dragleave="leaveFiles" @drop="dropFiles">
@@ -89,8 +88,7 @@ function drag(event: DragEvent, id: string) { if (editingId.value || (event.targ
         </div>
         <div class="source-description">
           <div class="source-name-row">
-            <input v-if="editingId === source.id" v-model="nameDraft" class="source-name-input" aria-label="media name" maxlength="120" @pointerdown.stop @dblclick.stop @keydown.stop="nameKey" @blur="commitName"/>
-            <span v-else class="source-name" :title="source.name" @dblclick.stop="rename(source.id)">{{ source.name }}</span>
+            <EditableText :ref="element => { if (element) nameEditors.set(source.id, element as InstanceType<typeof EditableText>); else nameEditors.delete(source.id); }" class="source-name" label="media name" :model-value="source.name" :max-length="120" :reset-key="project.generation" @change="project.renameSource(source.id, $event)"/>
             <div class="source-options" @pointerdown.stop @dblclick.stop>
               <ActionButton class="source-options-trigger" variant="quiet" size="compact" shape="circle" aria-label="media options" aria-haspopup="menu" :aria-expanded="menuId === source.id" @click="toggleMenu(source.id)" @keydown.down.stop.prevent="toggleMenu(source.id)"><InterfaceIcon name="three-dots"/></ActionButton>
               <div v-if="menuId === source.id" class="source-options-menu" role="menu" aria-label="media options" @keydown.stop="menuKey">
