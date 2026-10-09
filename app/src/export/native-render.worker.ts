@@ -1,7 +1,6 @@
 /// <reference lib="webworker" />
 import { Input, BlobSource, ALL_FORMATS, VideoSampleSink, AudioSampleSink, AudioSample,
-  Output, Mp4OutputFormat, BufferTarget, CanvasSource, AudioSampleSource, canEncodeVideo, canEncodeAudio } from 'mediabunny';
-import type { VideoSample } from 'mediabunny';
+  Output, Mp4OutputFormat, BufferTarget, VideoSample, VideoSampleSource, AudioSampleSource, canEncodeVideo, canEncodeAudio } from 'mediabunny';
 import type { RenderRequest, RenderReply } from './native-render.contract';
 import type { Clip } from '../timeline/timeline.model';
 import { renderOrder, timelineEnd, isActive, validateClips } from '../timeline/timeline.model';
@@ -22,9 +21,10 @@ class AudioCursor {
   async mix(clip: Clip, time: number, output: Float32Array) {
     const gain = clip.volume / 100;
     if (!gain) return;
-    for (let index = 0; index < AUDIO_FRAMES; index++) {
+    const firstOutputFrame = Math.max(0, Math.ceil((clip.start - time) * RATE - 1e-6));
+    const lastOutputFrame = Math.min(AUDIO_FRAMES, Math.ceil((clip.start + clip.duration - time) * RATE - 1e-6));
+    for (let index = firstOutputFrame; index < lastOutputFrame; index++) {
       const timelineTime = time + index / RATE;
-      if (!isActive(clip, timelineTime)) continue;
       const sourceTime = clip.offset + timelineTime - clip.start;
       while (!this.done && (!this.sample || sourceTime >= this.sample.timestamp + this.sample.duration - 1e-9)) {
         this.sample?.close(); this.sample = null;
@@ -67,21 +67,30 @@ async function render(request: RenderRequest) {
   }
   const inputs: Input[] = [];
   const videos = new Map<string, VideoSampleSink>();
+  const directSources = new Set<string>();
   const audios = new Map<string, AudioSampleSink>();
   const videoCursors = new Map<string, AsyncGenerator<VideoSample | null, void, unknown>>();
   const audioCursors = new Map<string, AudioCursor>();
   const ordered = renderOrder(snapshot.clips);
+  const usedSourceIds = new Set(ordered.map(clip => clip.sourceId));
   const sourceById = new Map(sources.map(source => [source.id, source]));
   let gpu: Awaited<ReturnType<typeof createGpuCompositor>> | null = null;
   let output: Output<Mp4OutputFormat, BufferTarget> | null = null;
   try {
     report({ type: 'progress', progress: .01, label: 'preparing local media' });
-    for (const source of sources) {
+    for (const source of sources.filter(source => usedSourceIds.has(source.id))) {
       const input = new Input({ source: new BlobSource(source.file), formats: ALL_FORMATS }); inputs.push(input);
       const [video, audio] = await Promise.all([input.getPrimaryVideoTrack(), input.getPrimaryAudioTrack()]);
       if (source.kind === 'video') {
         if (!video || !await video.canDecode()) throw new Error('native video decoder unavailable');
-        videos.set(source.id, new VideoSampleSink(video));
+        const config = await video.getDecoderConfig();
+        let hardwareDecode = false;
+        if (config && typeof VideoDecoder !== 'undefined') {
+          try { hardwareDecode = (await VideoDecoder.isConfigSupported({ ...config, hardwareAcceleration: 'prefer-hardware' })).supported === true; }
+          catch { hardwareDecode = false; }
+        }
+        videos.set(source.id, new VideoSampleSink(video, { hardwareAcceleration: hardwareDecode ? 'prefer-hardware' : 'no-preference' }));
+        if (await video.getCodec() === 'avc') directSources.add(source.id);
       }
       if (audio) {
         if (!await audio.canDecode() || await audio.getNumberOfChannels() > 2) throw new Error('native audio decoder unavailable');
@@ -94,7 +103,7 @@ async function render(request: RenderRequest) {
     catch { canvas = new OffscreenCanvas(width, height); context = canvas.getContext('2d', { alpha: false }); }
     if (!gpu && !context) throw new Error('canvas renderer unavailable');
     output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target: new BufferTarget() });
-    const videoOutput = new CanvasSource(canvas, { codec: 'avc', bitrate, hardwareAcceleration, latencyMode: 'quality', keyFrameInterval: 2 });
+    const videoOutput = new VideoSampleSource({ codec: 'avc', bitrate, hardwareAcceleration, latencyMode: 'quality', keyFrameInterval: 2 });
     const audioOutput = new AudioSampleSource({ codec: 'aac', bitrate: 192000 });
     output.addVideoTrack(videoOutput, { frameRate: FPS }); output.addAudioTrack(audioOutput);
     await output.start();
@@ -121,11 +130,19 @@ async function render(request: RenderRequest) {
           if (sample) samples.push(sample);
           return { clip, sample };
         }));
+        let directSample: VideoSample | null = null;
         for (const result of results) {
           if (result.status === 'rejected') throw result.reason;
           const { clip, sample } = result.value;
           if (!sample) continue;
           const source = sourceById.get(clip.sourceId)!, size = videoWorldSize(source), t = clip.transform;
+          // A single opaque full-stage frame needs neither compositing nor a canvas round trip.
+          if (results.length === 1 && directSources.has(clip.sourceId) && t.x === 0 && t.y === 0 && t.rotation === 0 &&
+              Math.abs(size.width * t.scaleX - width) < 1e-6 && Math.abs(size.height * t.scaleY - height) < 1e-6 &&
+              sample.codedWidth === width && sample.codedHeight === height &&
+              sample.displayWidth === width && sample.displayHeight === height && sample.rotation === 0 && !sample.flip) {
+            directSample = sample; continue;
+          }
           if (gpu) {
             const videoFrame = sample.toVideoFrame(); gpuFrames.push(videoFrame);
             layers.push({ id: clip.id, source: videoFrame, width: source.width, height: source.height,
@@ -136,8 +153,14 @@ async function render(request: RenderRequest) {
             sample.draw(context!, -size.width/2, -size.height/2, size.width, size.height); context!.restore();
           }
         }
-        if (gpu) gpu.render(layers, snapshot.stage);
-        await videoOutput.add(time, 1/FPS);
+        if (directSample) {
+          directSample.setTimestamp(time); directSample.setDuration(1 / FPS);
+          await videoOutput.add(directSample);
+        } else {
+          if (gpu) gpu.render(layers, snapshot.stage);
+          const composed = new VideoSample(canvas, { timestamp: time, duration: 1 / FPS });
+          try { await videoOutput.add(composed); } finally { composed.close(); }
+        }
       } finally { for (const sample of samples) sample.close(); for (const frame of gpuFrames) frame.close(); }
       const mix = new Float32Array(AUDIO_FRAMES*2);
       for (const clip of active) {

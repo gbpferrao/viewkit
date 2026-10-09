@@ -24,7 +24,8 @@ export function encodeNativeMp4(snapshot: ProjectSnapshot, sources: MediaSource[
       else if (reply.type === 'error') finish(new Error(reply.message));
       else finish(undefined, new Blob([reply.buffer], { type: 'video/mp4' }));
     };
-    const request: RenderRequest = { snapshot, sources: sources.map(({ url: _url, ...source }) => source) };
+    const used = new Set(snapshot.clips.map(clip => clip.sourceId));
+    const request: RenderRequest = { snapshot, sources: sources.filter(source => used.has(source.id)).map(({ url: _url, ...source }) => source) };
     try { worker.postMessage(request); } catch (error) { finish(error instanceof Error ? error : new Error('could not start renderer')); }
   });
 }

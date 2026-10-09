@@ -11,6 +11,8 @@ import { FPS } from '../shared/frame-math.contract';
 export async function encodeMp4(snapshot: ProjectSnapshot, sources: MediaSource[], signal: AbortSignal,
   onProgress: RenderProgress): Promise<Blob> {
   signal.throwIfAborted();
+  const used = new Set(snapshot.clips.map(clip => clip.sourceId));
+  sources = sources.filter(source => used.has(source.id));
   try { return await encodeNativeMp4(snapshot, sources, signal, onProgress); }
   catch { signal.throwIfAborted(); onProgress(0, 'preparing the compatible encoder'); }
   return encodeCompatibleMp4(snapshot, sources, signal, onProgress);

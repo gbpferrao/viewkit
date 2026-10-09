@@ -15,6 +15,10 @@ A generation token rejects stale completion after clear. Probe cancellation rele
 Files over 512 MiB receive a warning, not a rejection or new product limit.
 
 Export takes an immutable snapshot and retains source File references for the run.
+native export transfers and opens only media referenced by snapshot clips. it probes hardware-preferred video decoding and falls back to no-preference when unsupported.
+a lone opaque H.264 sample bypasses canvas composition when coded/display dimensions match output, its world rectangle fills the stage, and rotation/flip/translation are absent.
+direct samples receive timeline timestamps and duration before encoding. overlaps, letterboxing, resizing, rotations, other codecs, and gaps retain full composition.
+audio clip bounds are calculated once per output block instead of once per PCM sample. encoder quality mode and bounded backpressure remain unchanged.
 The export entry first requires a five-second ad with final-app user-facing wording. Watch ad opens the advertisement placeholder and starts the countdown; completion automatically takes the committed snapshot and starts encoding. Every export repeats this local-only simulated gate. Cancel, escape, new project, or unmount clears its timer; no ad service or network request is integrated.
 The first path is a private native codec worker: blob demuxing, sequential WebCodecs decode, WebGPU composition (Canvas 2D when unavailable), block-based stereo audio mixing, H.264/AAC encoding, and MP4 muxing. Frame timestamps follow the 24 fps grid without a live clock. Clip offsets, gain, transforms, ordering, silence and black gaps use the committed snapshot. The native encoder probes hardware preference before no-preference; neither proves hardware execution.
 Unsupported native codecs, multichannel audio, odd dimensions, or native-render failure fall back to one local wasm worker with an isolated filesystem. Inputs use generated internal names, never user-provided paths or shell commands. This fallback uses the existing offline filter graph. Even dimensions use yuv420p; odd dimensions use yuv444p to preserve exact pixel dimensions.
