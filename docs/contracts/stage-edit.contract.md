@@ -6,7 +6,8 @@ Initial and reset dimensions are 1280x720. Dimensions are integers within width 
 the stage row offers width/height swapping and a session aspect ratio lock. swapping is disabled when reversed dimensions exceed limits.
 locking captures the current ratio. editing either dimension resizes both, bounded to valid dimensions before whole-pixel rounding.
 presets and swapping establish a new locked ratio. new project clears the lock; undo restores dimensions without changing this session preference.
-presets cover 16:9, 9:16, 1:1, 4:5, 4:3, 3:2, and 21:9 at named output sizes.
+presets are grouped by 16:9, 4:3, 1:1, 5:4, 3:2, and 21:9, with resolutions inside each group. inverse ratios use the swap button.
+16:9 includes 360p, 480p, 720p, 1080p, 1440p, and 2160p. other groups include 480p, 720p, and 1080p.
 lower-resolution landscape presets include 360p (640×360) and 480p (854×480, rounded to an even width for video encoding).
 Invalid or out-of-range input preserves the prior stage and shows feedback. No silent clamping changes invalid committed input.
 

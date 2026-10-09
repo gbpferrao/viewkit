@@ -66,6 +66,8 @@ button.ui-button.stage-dimension-action { --button-height: 24px; }
 .stage-presets-menu { position: absolute; z-index: 22; top: calc(100% + 6px); right: 0; width: 218px; max-height: 300px; overflow-y: auto; padding: 4px; border: 1px solid #2b2b2b; border-radius: 6px; background: #151515; box-shadow: 0 4px 12px #00000066; }
 button.ui-button.stage-preset-item { width: 100%; justify-content: space-between; padding-inline: 8px; font-size: 11px; }
 .stage-preset-item small { font-size: 10px; color: #888888; }
+.stage-preset-group + .stage-preset-group { border-top: 1px solid #252525; margin-top: 4px; padding-top: 4px; }
+.stage-preset-group-label { padding: 7px 8px 5px; color: #888888; font-size: 10px; font-weight: 600; }
 button.ui-button.stage-preset-item[aria-checked=true] { background: #ffffff12; color: #ffffff; }
 .property-icon { display: flex; align-items: center; justify-content: center; width: 20px; flex: 0 0 20px; font-size: 16px; color: #b8b8b8; }
 .property-controls { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }

@@ -11,19 +11,40 @@ const tab = ref<'stage' | 'objects'>('stage');
 const presetsOpen = ref(false), presetsRoot = ref<HTMLElement>();
 const lockedRatio = ref<number | null>(null);
 const canSwap = computed(() => project.stage.height >= 320 && project.stage.width <= 2160);
-const stagePresets = [
-  { label: '16:9 · 360p', width: 640, height: 360 },
-  { label: '16:9 · 480p', width: 854, height: 480 },
-  { label: '16:9 · 720p', width: 1280, height: 720 },
-  { label: '16:9 · 1080p', width: 1920, height: 1080 },
-  { label: 'portrait 9:16', width: 720, height: 1280 },
-  { label: 'portrait 9:16 · HD', width: 1080, height: 1920 },
-  { label: 'square 1:1', width: 1080, height: 1080 },
-  { label: 'portrait 4:5', width: 1080, height: 1350 },
-  { label: 'landscape 4:3', width: 1440, height: 1080 },
-  { label: 'landscape 3:2', width: 1620, height: 1080 },
-  { label: 'cinema 21:9', width: 2520, height: 1080 },
-  { label: '16:9 · 4K', width: 3840, height: 2160 }
+const stagePresetGroups = [
+  { ratio: '16:9', presets: [
+    { label: '360p', width: 640, height: 360 },
+    { label: '480p', width: 854, height: 480 },
+    { label: '720p', width: 1280, height: 720 },
+    { label: '1080p', width: 1920, height: 1080 },
+    { label: '1440p', width: 2560, height: 1440 },
+    { label: '2160p · 4K', width: 3840, height: 2160 }
+  ] },
+  { ratio: '4:3', presets: [
+    { label: '480p', width: 640, height: 480 },
+    { label: '720p', width: 960, height: 720 },
+    { label: '1080p', width: 1440, height: 1080 }
+  ] },
+  { ratio: '1:1', presets: [
+    { label: '480p', width: 480, height: 480 },
+    { label: '720p', width: 720, height: 720 },
+    { label: '1080p', width: 1080, height: 1080 }
+  ] },
+  { ratio: '5:4', presets: [
+    { label: '480p', width: 600, height: 480 },
+    { label: '720p', width: 900, height: 720 },
+    { label: '1080p', width: 1350, height: 1080 }
+  ] },
+  { ratio: '3:2', presets: [
+    { label: '480p', width: 720, height: 480 },
+    { label: '720p', width: 1080, height: 720 },
+    { label: '1080p', width: 1620, height: 1080 }
+  ] },
+  { ratio: '21:9', presets: [
+    { label: '480p', width: 1120, height: 480 },
+    { label: '720p', width: 1680, height: 720 },
+    { label: '1080p', width: 2520, height: 1080 }
+  ] }
 ];
 function setDimension(key: 'width' | 'height', value: number) {
   const size = resizeStageDimension(project.stage, key, value, lockedRatio.value);
@@ -126,7 +147,10 @@ function tabKeys(event: KeyboardEvent) {
             <div ref="presetsRoot" class="stage-presets">
               <ActionButton class="stage-presets-trigger" variant="quiet" size="compact" shape="square" aria-label="stage size presets" title="stage size presets" aria-haspopup="menu" aria-controls="stage-presets-menu" :aria-expanded="presetsOpen" @click="presetsOpen ? closePresets(true) : openPresets()" @keydown.down.stop.prevent="openPresets"><InterfaceIcon name="chevron-down"/></ActionButton>
               <div v-if="presetsOpen" id="stage-presets-menu" class="stage-presets-menu" role="menu" aria-label="stage size presets" @keydown.stop="presetKeys">
-                <ActionButton v-for="preset in stagePresets" :key="preset.label" class="stage-preset-item" variant="quiet" role="menuitemradio" tabindex="-1" :aria-checked="project.stage.width === preset.width && project.stage.height === preset.height" @click="chooseSize(preset.width, preset.height); closePresets(true)"><span>{{ preset.label }}</span><small>{{ preset.width }}×{{ preset.height }}</small></ActionButton>
+                <div v-for="group in stagePresetGroups" :key="group.ratio" class="stage-preset-group" role="group" :aria-label="group.ratio + ' resolutions'">
+                  <div class="stage-preset-group-label" aria-hidden="true">{{ group.ratio }}</div>
+                  <ActionButton v-for="preset in group.presets" :key="preset.label" class="stage-preset-item" variant="quiet" role="menuitemradio" tabindex="-1" :aria-label="group.ratio + ', ' + preset.label + ', ' + preset.width + ' by ' + preset.height" :aria-checked="project.stage.width === preset.width && project.stage.height === preset.height" @click="chooseSize(preset.width, preset.height); closePresets(true)"><span>{{ preset.label }}</span><small>{{ preset.width }}×{{ preset.height }}</small></ActionButton>
+                </div>
               </div>
             </div>
           </div>
