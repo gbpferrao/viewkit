@@ -141,6 +141,12 @@ function beginPan(event: PointerEvent) {
   panGesture = { pointer: event.pointerId, target, x: event.clientX, y: event.clientY, start: { ...pan.value } };
   target.setPointerCapture(event.pointerId);
 }
+function clearEmptySelection(event: PointerEvent) {
+  if (event.button !== 0) return;
+  const target = event.target as HTMLElement;
+  if (target.closest('.stage-selection, .stage-rotate, .stage-scale, .stage-controls, .stage-zoom-menu-wrap, video, button, input')) return;
+  project.select([]);
+}
 function finishPan(cancelled = false) {
   const previous = panGesture; panGesture = null;
   if (cancelled && previous) pan.value = previous.start;
@@ -267,7 +273,7 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <section class="stage-panel">
-    <div ref="viewport" class="stage-viewport" @pointerdown="beginPan" @wheel="zoomAtPointer" @auxclick.prevent @pointermove="revealControls" @pointerleave="leaveControlsArea">
+    <div ref="viewport" class="stage-viewport" @pointerdown="clearEmptySelection" @pointerdown.middle="beginPan" @wheel="zoomAtPointer" @auxclick.prevent @pointermove="revealControls" @pointerleave="leaveControlsArea">
       <div class="stage-screen" :style="cameraStyle">
         <div class="stage-canvas" :style="{ width: project.stage.width + 'px', height: project.stage.height + 'px', transform: 'scale(' + scale + ')' }">
           <template v-for="clip in preview" :key="clip.id" v-memo="[clip, transformFor(clip), project.stage.width, project.stage.height, sourceFor(clip)]">
