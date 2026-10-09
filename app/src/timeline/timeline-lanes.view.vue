@@ -451,7 +451,6 @@ onBeforeUnmount(() => { cancel(); window.removeEventListener('pointercancel', ca
           <div class="lane-track" :style="{ backgroundSize: gridSpacing + 'px 100%' }">
             <div class="lane-active-region" :style="{ width: activeWidth + 'px', backgroundSize: gridSpacing + 'px 100%' }" aria-hidden="true"></div>
             <ClipBlock v-for="clip in lane.clips" :key="clip.id" v-memo="[clip, sourceById.get(clip.sourceId), selectedIds.has(clip.id), zoom, lane.rows[clip.id], clipHeight, viewport.left, viewport.width]" :class="{ 'placement-ghost': clip.id === GHOST_ID }" :inert="clip.id === GHOST_ID || undefined" :aria-hidden="clip.id === GHOST_ID || undefined" :clip="clip" :source="sourceById.get(clip.sourceId)!" :selected="selectedIds.has(clip.id)" :pixels-per-second="zoom" :row="lane.rows[clip.id]" :clip-height="clipHeight" :visible-left="viewport.left" :visible-right="viewport.left + viewport.width - 86" :thumbnails="thumbnails" @gesture="beginClip"/>
-            <span v-if="lane.lane === 0 && !project.clips.length && !importGhost" class="timeline-empty">drop media here to start your sequence</span>
           </div>
         </div>
         <div v-if="activeEnd > 0" class="sequence-end-line" :style="{ left: 86 + activeWidth + 'px' }" aria-hidden="true"></div>

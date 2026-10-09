@@ -116,7 +116,48 @@ function finishControls(event: PointerEvent) {
 }
 function blurControls() { controlsInteracting.value = false; leaveControlsArea(); }
 const available = ref({ width: 700, height: 390 });
-const scale = computed(() => Math.min((available.value.width - 80) / project.stage.width, (available.value.height - 80) / project.stage.height));
+const zoom = ref(1);
+const pan = ref({ x: 0, y: 0 });
+const zoomMenuOpen = ref(false);
+const zoomOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
+const zoomLabel = computed(() => `${Math.round(zoom.value * 100)}%`);
+function setZoom(next: number) {
+  zoom.value = next;
+  pan.value = next === 1 ? { x: 0, y: 0 } : boundedPan(pan.value.x, pan.value.y);
+  zoomMenuOpen.value = false;
+}
+const scale = computed(() => Math.max(.01, Math.min((available.value.width - 80) / project.stage.width, (available.value.height - 80) / project.stage.height)) * zoom.value);
+const cameraStyle = computed(() => ({ width: project.stage.width * scale.value + 'px', height: project.stage.height * scale.value + 'px', transform: `translate(${pan.value.x}px, ${pan.value.y}px)` }));
+let panGesture: { pointer: number; target: HTMLElement; x: number; y: number; start: { x: number; y: number } } | null = null;
+function boundedPan(x: number, y: number) {
+  const boundX = Math.max(available.value.width, project.stage.width * scale.value) * .75;
+  const boundY = Math.max(available.value.height, project.stage.height * scale.value) * .75;
+  return { x: Math.max(-boundX, Math.min(boundX, x)), y: Math.max(-boundY, Math.min(boundY, y)) };
+}
+function beginPan(event: PointerEvent) {
+  if (event.button !== 1 || gesture || panGesture || (event.target as HTMLElement).closest('.stage-controls')) return;
+  event.preventDefault();
+  const target = viewport.value!;
+  panGesture = { pointer: event.pointerId, target, x: event.clientX, y: event.clientY, start: { ...pan.value } };
+  target.setPointerCapture(event.pointerId);
+}
+function finishPan(cancelled = false) {
+  const previous = panGesture; panGesture = null;
+  if (cancelled && previous) pan.value = previous.start;
+  if (previous?.target.hasPointerCapture(previous.pointer)) previous.target.releasePointerCapture(previous.pointer);
+}
+function zoomAtPointer(event: WheelEvent) {
+  if (gesture || panGesture || (event.target as HTMLElement).closest('.stage-controls')) return;
+  event.preventDefault();
+  const rect = viewport.value!.getBoundingClientRect();
+  const x = event.clientX - rect.left - rect.width / 2, y = event.clientY - rect.top - rect.height / 2;
+  const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? rect.height : 1);
+  const next = Math.max(.25, Math.min(8, zoom.value * Math.exp(-Math.max(-600, Math.min(600, delta)) * .0015)));
+  const ratio = next / zoom.value;
+  zoom.value = next;
+  pan.value = boundedPan(x - (x - pan.value.x) * ratio, y - (y - pan.value.y) * ratio);
+}
+watch(available, () => { pan.value = boundedPan(pan.value.x, pan.value.y); });
 const selected = computed(() => project.selection.length === 1 ? preview.value.find(clip => project.selection.includes(clip.id) && sourceFor(clip).kind === 'video') : undefined);
 const draft = ref<StageTransform | null>(null);
 const draftClipId = ref<string | null>(null);
@@ -137,19 +178,20 @@ const selectionLayers = computed(() => preview.value.filter(clip => sourceFor(cl
 })));
 const inactiveSelectionCount = computed(() => project.selected.filter(clip => !activeClipIds.value.has(clip.id)).length);
 const audioSelectionCount = computed(() => project.selected.filter(clip => sourceFor(clip).kind === 'audio').length);
-watch(() => [preview.value, project.stage, draftClipId.value, draft.value, available.value, playback.time.value], queuePreview, { flush: 'post' });
-watch(() => project.generation, () => { gpuPreview.value = false; fallbackPreview.value = false; queuePreview(); });
+watch(() => [preview.value, project.stage, draftClipId.value, draft.value, scale.value, playback.time.value], queuePreview, { flush: 'post' });
+watch(() => project.generation, () => { finishPan(); zoom.value = 1; pan.value = { x: 0, y: 0 }; gpuPreview.value = false; fallbackPreview.value = false; queuePreview(); });
 function videoStyle(clip: Clip) {
   const size = videoWorldSize(sourceFor(clip)), transform = transformFor(clip);
   return { width: size.width + 'px', height: size.height + 'px',
     transform: 'translate(-50%, -50%) translate(' + transform.x + 'px,' + transform.y + 'px) rotate(' + transform.rotation + 'deg) scale(' + transform.scaleX + ',' + transform.scaleY + ')' };
 }
 function begin(event: PointerEvent, action: 'move' | 'scale' | 'rotate') {
+  if (event.button === 1) { beginPan(event); return; }
   if (event.button !== 0 || !selected.value || gesture) return;
   event.preventDefault(); playback.pause();
   const clip = selected.value, rect = viewport.value!.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2 + clip.transform.x * scale.value;
-  const centerY = rect.top + rect.height / 2 + clip.transform.y * scale.value;
+  const centerX = rect.left + rect.width / 2 + pan.value.x + clip.transform.x * scale.value;
+  const centerY = rect.top + rect.height / 2 + pan.value.y + clip.transform.y * scale.value;
   const target = event.currentTarget as HTMLElement;
   gesture = { action, id: clip.id, pointer: event.pointerId, target, x: event.clientX, y: event.clientY, centerX, centerY, start: { ...clip.transform },
     distance: Math.max(1, Math.hypot(event.clientX - centerX, event.clientY - centerY)), angle: Math.atan2(event.clientY - centerY, event.clientX - centerX) };
@@ -157,6 +199,9 @@ function begin(event: PointerEvent, action: 'move' | 'scale' | 'rotate') {
   target.setPointerCapture(event.pointerId);
 }
 function move(event: PointerEvent) {
+  if (panGesture && event.pointerId === panGesture.pointer) {
+    pan.value = boundedPan(panGesture.start.x + event.clientX - panGesture.x, panGesture.start.y + event.clientY - panGesture.y); return;
+  }
   if (!gesture || event.pointerId !== gesture.pointer) return;
   pendingTransform = event;
   if (!transformFrame) transformFrame = requestAnimationFrame(() => {
@@ -172,10 +217,17 @@ function updateTransform(event: PointerEvent) {
   else if (gesture.action === 'scale') {
     const ratio = Math.hypot(event.clientX - gesture.centerX, event.clientY - gesture.centerY) / gesture.distance;
     next.scaleX = Math.max(0.05, Math.min(10, next.scaleX * ratio)); next.scaleY = Math.max(0.05, Math.min(10, next.scaleY * ratio));
-  } else next.rotation += (Math.atan2(event.clientY - gesture.centerY, event.clientX - gesture.centerX) - gesture.angle) * 180 / Math.PI;
+  } else {
+    const raw = gesture.start.rotation + (Math.atan2(event.clientY - gesture.centerY, event.clientX - gesture.centerX) - gesture.angle) * 180 / Math.PI;
+    // keep ordinary rotation aligned to the object's top-facing quarter turns;
+    // ctrl or shift provides an explicit free-rotation override.
+    const snapped = Math.round(raw / 90) * 90;
+    next.rotation = event.ctrlKey || event.shiftKey || Math.abs(raw - snapped) > 8 ? raw : snapped;
+  }
   draft.value = next;
 }
 function end(event: PointerEvent) {
+  if (event.pointerId === panGesture?.pointer) { finishPan(); return; }
   if (!gesture || event.pointerId !== gesture.pointer) return;
   updateTransform(event);
   if (draft.value) stage.setTransform(gesture.id, draft.value);
@@ -186,9 +238,10 @@ function cancel() {
   const previous = gesture; gesture = null; draftClipId.value = null; draft.value = null;
   if (previous?.target.hasPointerCapture(previous.pointer)) previous.target.releasePointerCapture(previous.pointer);
 }
-function cancelPointer(event: PointerEvent) { if (event.pointerId === gesture?.pointer) cancel(); }
+function cancelPointer(event: PointerEvent) { if (event.pointerId === gesture?.pointer) cancel(); if (event.pointerId === panGesture?.pointer) finishPan(true); }
 watch(() => [project.generation, project.selection.join('|'), playback.time.value], cancel);
-function key(event: KeyboardEvent) { if (event.key === 'Escape') cancel(); }
+function key(event: KeyboardEvent) { if (event.key === 'Escape') { cancel(); finishPan(true); zoomMenuOpen.value = false; } }
+function blurNavigation() { finishPan(true); }
 onMounted(() => {
   observer = new ResizeObserver(entries => { const rect = entries[0].contentRect; available.value = { width: rect.width, height: rect.height }; });
   observer.observe(viewport.value!);
@@ -199,9 +252,11 @@ onMounted(() => {
 });
 window.addEventListener('pointermove', move); window.addEventListener('pointerup', end); window.addEventListener('keydown', key);
 window.addEventListener('pointercancel', cancelPointer); window.addEventListener('blur', cancel);
+window.addEventListener('blur', blurNavigation);
 window.addEventListener('pointerup', finishControls); window.addEventListener('pointercancel', finishControls); window.addEventListener('blur', blurControls);
 onBeforeUnmount(() => {
   disposed = true; cancelAnimationFrame(previewFrame); compositor?.dispose(); compositor = null;
+  finishPan(); window.removeEventListener('blur', blurNavigation);
   for (const [id, video] of sceneVideos) {
     const token = videoCallbacks.get(id); if (token !== undefined) video.cancelVideoFrameCallback(token);
     video.removeEventListener('loadeddata', queuePreview); video.removeEventListener('seeked', queuePreview);
@@ -212,19 +267,18 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <section class="stage-panel">
-    <div ref="viewport" class="stage-viewport" @pointermove="revealControls" @pointerleave="leaveControlsArea">
-      <div class="stage-screen" :style="{ width: project.stage.width * scale + 'px', height: project.stage.height * scale + 'px' }">
+    <div ref="viewport" class="stage-viewport" @pointerdown="beginPan" @wheel="zoomAtPointer" @auxclick.prevent @pointermove="revealControls" @pointerleave="leaveControlsArea">
+      <div class="stage-screen" :style="cameraStyle">
         <div class="stage-canvas" :style="{ width: project.stage.width + 'px', height: project.stage.height + 'px', transform: 'scale(' + scale + ')' }">
           <template v-for="clip in preview" :key="clip.id" v-memo="[clip, transformFor(clip), project.stage.width, project.stage.height, sourceFor(clip)]">
-            <video v-if="sourceFor(clip).kind === 'video'" :ref="element => registerVideo(clip.id, element as HTMLVideoElement | null)" class="stage-video" :src="sourceFor(clip).url" :style="videoStyle(clip)" preload="auto" playsinline @pointerdown="project.select([clip.id])"/>
+            <video v-if="sourceFor(clip).kind === 'video'" :ref="element => registerVideo(clip.id, element as HTMLVideoElement | null)" class="stage-video" :src="sourceFor(clip).url" :style="videoStyle(clip)" preload="auto" playsinline @pointerdown="event => { if (event.button === 0) project.select([clip.id]); }"/>
             <audio v-else :ref="element => playback.register(clip.id, element as HTMLAudioElement | null)" :src="sourceFor(clip).url" preload="auto"/>
           </template>
         </div>
         <canvas ref="previewCanvas" class="stage-gpu-preview" :class="{ ready: gpuPreview }" aria-hidden="true"></canvas>
         <canvas ref="fallbackCanvas" class="stage-gpu-preview" :class="{ ready: fallbackPreview && !gpuPreview }" aria-hidden="true"></canvas>
-        <span v-if="!project.clips.length" class="stage-placeholder"><span class="stage-placeholder-mark"><InterfaceIcon name="play-btn"/></span>make room for your next cut</span>
       </div>
-      <div class="stage-handle-layer" :style="{ width: project.stage.width * scale + 'px', height: project.stage.height * scale + 'px' }">
+      <div class="stage-handle-layer" :style="cameraStyle">
         <StageSelection :stage="project.stage" :scale="scale" :objects="selectionObjects" :layers="selectionLayers"/>
         <StageHandles v-if="selected" :clip="selected" :source="sourceFor(selected)" :stage="project.stage" :transform="transformFor(selected)" :preview-scale="scale" @begin="begin"/>
       </div>
@@ -232,6 +286,13 @@ onBeforeUnmount(() => {
       <span v-if="busy" class="decode-badge" role="status">buffering preview…</span>
       <span v-else-if="playback.error.value" class="decode-badge" role="status">{{ playback.error.value }}</span>
       <div ref="controls" class="stage-controls" :class="{ visible: controlsNearby || controlsInteracting }" role="group" aria-label="playback controls" @pointerdown="controlsInteracting = true">
+    <div class="stage-zoom-menu-wrap">
+      <button type="button" class="stage-zoom-trigger" aria-haspopup="menu" :aria-expanded="zoomMenuOpen" aria-label="stage zoom" @click.stop="zoomMenuOpen = !zoomMenuOpen">{{ zoomLabel }}<span aria-hidden="true">⌃</span></button>
+      <div v-if="zoomMenuOpen" class="stage-zoom-menu" role="menu" aria-label="stage zoom levels">
+        <button type="button" role="menuitem" @click="setZoom(1)">fit viewport</button>
+        <button v-for="option in zoomOptions" :key="option" type="button" role="menuitemradio" :aria-checked="Math.abs(zoom - option) < .001" @click="setZoom(option)">{{ Math.round(option * 100) }}%</button>
+      </div>
+    </div>
     <div class="transport">
       <span class="timecode">{{ formatTime(time) }}</span>
       <div class="transport-buttons"><ActionButton variant="quiet" size="compact" shape="circle" class="icon-button" title="go to start" aria-label="go to start" @click="playback.pause(); playback.seek(0)"><InterfaceIcon name="skip-start-fill"/></ActionButton><ActionButton variant="quiet" size="compact" shape="circle" class="icon-button" title="previous frame" aria-label="previous frame" @click="playback.step(-1)"><InterfaceIcon name="caret-left-fill"/></ActionButton><ActionButton variant="primary" size="regular" shape="circle" class="play-button" :aria-label="playing ? 'pause' : 'play'" @click="playback.toggle()"><InterfaceIcon :name="playing ? 'pause-fill' : 'play-fill'"/></ActionButton><ActionButton variant="quiet" size="compact" shape="circle" class="icon-button" title="next frame" aria-label="next frame" @click="playback.step(1)"><InterfaceIcon name="caret-right-fill"/></ActionButton><ActionButton variant="quiet" size="compact" shape="circle" class="icon-button" title="go to end" aria-label="go to end" @click="playback.pause(); playback.seek(project.end)"><InterfaceIcon name="skip-end-fill"/></ActionButton></div>

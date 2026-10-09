@@ -18,6 +18,8 @@ Video world dimensions retain source aspect ratio using a fixed 1280x720 referen
 Scale x/y range is 0.05–10. Rotation is degrees wrapped to [-180,180). Position may extend outside stage.
 The viewport only scales presentation; source dimensions, stage dimensions and transforms stay authoritative for export. Transform handles are laid out directly in display coordinates: corner squares remain 18 px, rotation controls 40 px, and rotation stems 36 px regardless of preview scale. Selection strokes remain constant display-pixel widths.
 
+The stage preview exposes a lower zoom drop-up with fixed levels from 50% through 200% and a `fit viewport` command. The fit command restores the initial viewport scale and clears camera pan. Menu zoom changes presentation only; mouse-wheel zoom remains centered on the pointer, and middle-button pan stays bounded around the viewport.
+
 Lower lane indices composite above higher indices. Higher clip order composites above lower clip order within a lane; new clips initially receive the highest order, and vertical overlap-row dragging can reorder them.
 All overlapping clips remain independently selectable in timeline subrows.
 
@@ -28,6 +30,8 @@ Two or more selected videos also show an axis-aligned shared bounds box around a
 The stage viewport isolates stacking: rendered media at 0 (GPU overlay and empty placeholder local to its screen), selection outlines and handles at 2, status cues at 3, transport at 12. Selection SVG strokes retain display-pixel thickness and never intercept pointers. Outline geometry is recomputed on selected transforms, stage dimensions, or active layer membership, rather than decoding video pixels for each playback frame.
 
 Stage transform drafts update both video and handles during a gesture through a reactive draft clip identity and transform. Pointer moves are coalesced per animation frame; release applies the final position before one validated history commit. Pointer capture retains the drag outside its initial handle. Escape, pointer cancellation, blur, selection changes, project reset, or playhead changes discard the draft. Autosave and export read committed transforms only.
+
+Rotation gestures snap within 8 degrees of the nearest top-facing quarter turn (0, 90, 180, or 270 degrees). Holding ctrl or shift makes the current rotation free; releasing the modifier restores snapping for subsequent movement.
 Audio-only clips show faded disabled transform fields. Numeric edits use the same stage workflow.
 
 the inspector separates the stage dimensions row from selected object properties through stage and objects tabs. changing width or height commits directly; size presets set both dimensions in one history entry. the stage tab has no output summary or apply button.

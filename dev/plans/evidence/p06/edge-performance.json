@@ -1,0 +1,20 @@
+{
+  "browser": "edge",
+  "logicalCores": 8,
+  "fixture": "two 1920x1080 24fps clips",
+  "observedSeconds": 3,
+  "samples": 146,
+  "maxDriftFrames": 1.0399999999999974,
+  "overTwoFrames": 0,
+  "frames": [
+    {
+      "dropped": 3,
+      "total": 96
+    },
+    {
+      "dropped": 1,
+      "total": 89
+    }
+  ],
+  "maxGestureFrameMs": 4.600000023841858
+}

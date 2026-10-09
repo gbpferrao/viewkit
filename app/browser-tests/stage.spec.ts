@@ -1,6 +1,40 @@
 import { test, expect } from '@playwright/test';
 import { resolve } from 'node:path';
 
+test('stage camera anchors wheel zoom, pans without editing, and retains editable overflow', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('media-input').setInputFiles(resolve('../dev/plans/evidence/p01/source-a.mp4'));
+  await expect(page.locator('[data-source-id]')).toHaveCount(1);
+  await page.getByTitle('add to timeline at playhead').click();
+  const screen = page.locator('.stage-screen');
+  const before = (await screen.boundingBox())!;
+  const anchor = { x: before.x + before.width * .65, y: before.y + before.height * .4 };
+  await page.mouse.move(anchor.x, anchor.y); await page.mouse.wheel(0, -200);
+  await expect.poll(async () => (await screen.boundingBox())!.width).toBeGreaterThan(before.width);
+  const enlarged = (await screen.boundingBox())!;
+  expect((anchor.x - enlarged.x) / enlarged.width).toBeCloseTo(.65, 2);
+  expect((anchor.y - enlarged.y) / enlarged.height).toBeCloseTo(.4, 2);
+  await page.mouse.down({ button: 'middle' });
+  await page.mouse.move(anchor.x + 50, anchor.y + 30, { steps: 4 }); await page.mouse.up({ button: 'middle' });
+  const moved = (await screen.boundingBox())!;
+  expect(moved.x - enlarged.x).toBeCloseTo(50, 0); expect(moved.y - enlarged.y).toBeCloseTo(30, 0);
+  await expect(page.getByLabel('clip x', { exact: true })).toHaveValue('0');
+  const handle = page.getByRole('button', { name: 'scale clip', exact: true }).first();
+  await expect(handle).toHaveCSS('border-top-color', 'rgb(255, 255, 255)');
+  await handle.hover(); await expect(handle).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await page.getByLabel('clip x', { exact: true }).fill('900');
+  await page.getByLabel('clip x', { exact: true }).press('Enter');
+  await expect(page.locator('.stage-video')).toHaveCSS('opacity', '0.25');
+  await expect(page.locator('.stage-screen')).toHaveCSS('overflow', 'visible');
+  // Return the camera to fit, then hit the exposed video outside the output frame.
+  await page.mouse.move(anchor.x, anchor.y); await page.mouse.wheel(0, 200);
+  const output = (await screen.boundingBox())!;
+  const outside = { x: output.x + output.width + 20, y: output.y + output.height / 2 };
+  await page.mouse.move(outside.x, outside.y); await page.mouse.down();
+  await page.mouse.move(outside.x - 20, outside.y, { steps: 4 }); await page.mouse.up();
+  expect(Number(await page.getByLabel('clip x', { exact: true }).inputValue())).toBeLessThan(900);
+});
+
 test('stage handles commit and cancel transforms; seek and frame step remain exact', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');

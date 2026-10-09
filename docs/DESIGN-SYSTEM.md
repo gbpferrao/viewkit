@@ -346,7 +346,7 @@ the export dialog uses the heading rendering your video, the current renderer ph
 
 ## stage selection bounds
 
-video dimensions use a fixed 1280 by 720 reference fit in world coordinates; output stage resizing does not refit videos. the stage's preview fit scales only presentation. transform handles are positioned in display coordinates with fixed 18 px corner targets, a 40 px rotation button, and a 36 px stem, independent of stage dimensions and preview scale. outline strokes and shared-box padding also remain constant in display pixels.
+video dimensions use a fixed 1280 by 720 reference fit in world coordinates; output stage resizing does not refit videos. the stage's preview fit scales only presentation. transform handles are positioned in display coordinates with fixed 18 px corner targets, a 24 px rotation circle, and a 24 px stem, independent of stage dimensions and preview scale. outline strokes and shared-box padding also remain constant in display pixels.
 
 single selected video outlines use a 1.5 px white stroke. multiselection uses quieter 1 px individual boxes and a bright 1.5 px shared axis-aligned box, padded by 6 display pixels to keep individual edges readable. individual boxes retain their rotation; stroke thickness stays constant as the stage preview scales.
 

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import ActionButton from '../interface/action-button.view.vue';
-import InterfaceIcon from '../interface/interface-icon.view.vue';
 import type { Clip, MediaSource } from '../timeline/timeline.model';
 import type { StageSize, StageTransform } from './stage-size.model';
 import { videoWorldSize } from './stage-size.model';
@@ -20,7 +18,7 @@ const style = computed(() => {
     <button class="stage-scale corner-top-right" aria-label="scale clip" @pointerdown.stop="emit('begin', $event, 'scale')"></button>
     <button class="stage-scale corner-bottom-left" aria-label="scale clip" @pointerdown.stop="emit('begin', $event, 'scale')"></button>
     <button class="stage-scale corner-bottom-right" aria-label="scale clip" @pointerdown.stop="emit('begin', $event, 'scale')"></button>
-    <span class="rotate-stem"></span><ActionButton variant="secondary" size="large" shape="circle" class="stage-rotate" aria-label="rotate clip" @pointerdown.stop="emit('begin', $event, 'rotate')"><InterfaceIcon name="arrow-clockwise"/></ActionButton>
+    <span class="rotate-stem"></span><button type="button" class="stage-rotate" aria-label="rotate clip" @pointerdown.stop="emit('begin', $event, 'rotate')"></button>
   </div>
 </template>
 

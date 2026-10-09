@@ -1,0 +1,20 @@
+{
+  "browser": "chrome",
+  "logicalCores": 8,
+  "fixture": "two 1920x1080 24fps clips",
+  "observedSeconds": 3,
+  "samples": 146,
+  "maxDriftFrames": 0.45602399999999577,
+  "overTwoFrames": 0,
+  "frames": [
+    {
+      "dropped": 2,
+      "total": 93
+    },
+    {
+      "dropped": 3,
+      "total": 93
+    }
+  ],
+  "maxGestureFrameMs": 3.899999976158142
+}

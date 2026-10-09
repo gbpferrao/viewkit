@@ -79,7 +79,6 @@ function drag(event: DragEvent, id: string) { if ((event.target as HTMLElement).
     <div class="panel-heading"><h2>media</h2><span class="count">{{ project.sources.length }}</span><ActionButton variant="quiet" size="compact" shape="square" class="icon-button" :title="project.importing ? 'importing media…' : 'import media'" aria-label="import media" :disabled="project.importing" @click="picker?.click()"><InterfaceIcon name="plus-lg"/></ActionButton></div>
     <input ref="picker" data-testid="media-input" type="file" hidden multiple accept=".mp4,.webm,.mov,.mp3,.wav,.aac,.m4a" @change="pick"/>
     <div class="media-list" :class="{ 'media-list-empty': !project.sources.length }">
-      <p v-if="!project.sources.length" class="media-empty-label">no media yet</p>
       <article v-for="source in project.sources" :key="source.id" class="source-card" draggable="true" @dragstart="drag($event, source.id)" @dragend="mediaDrag = null" @dblclick="timeline.place(source.id, playback.time.value, 0)" :data-source-id="source.id">
         <div class="source-preview">
           <video v-if="source.kind === 'video'" :src="source.url" muted preload="metadata" tabindex="-1"/>

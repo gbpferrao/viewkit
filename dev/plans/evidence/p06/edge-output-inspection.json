@@ -1,0 +1,46 @@
+{
+  "output": {
+    "programs": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720,
+        "r_frame_rate": "24/1",
+        "nb_frames": "120"
+      },
+      {
+        "codec_name": "aac",
+        "r_frame_rate": "0/0",
+        "nb_frames": "236"
+      }
+    ],
+    "format": {
+      "duration": "5.000000"
+    }
+  },
+  "odd": {
+    "programs": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 321,
+        "height": 241,
+        "r_frame_rate": "24/1",
+        "nb_frames": "48"
+      },
+      {
+        "codec_name": "aac",
+        "r_frame_rate": "0/0",
+        "nb_frames": "95"
+      }
+    ],
+    "format": {
+      "duration": "2.000000"
+    }
+  },
+  "referenceDb": -21.1,
+  "actualDb": -27.1,
+  "differenceDb": -6,
+  "gapDb": -91
+}
