@@ -104,7 +104,7 @@ button.ui-button.stage-rotate > .ui-icon { font-size: 22px; }
 @media (prefers-reduced-motion: reduce) { button.ui-button { transition: none; } }
 
 
-.timeline-options { position: absolute; top: 7px; right: 8px; z-index: 20; }
+.timeline-options { position: absolute; top: 6px; left: 6px; z-index: 20; }
 button.ui-button.timeline-options-trigger { background: #181818e8; border-color: #2b2b2b; color: #c5c5c5; }
 .timeline-options-menu { position: absolute; top: 33px; right: 0; width: 216px; padding: 6px; border: 1px solid #2b2b2b; border-radius: 10px; background: #151515f5; box-shadow: 0 10px 30px #00000088; backdrop-filter: blur(10px); overflow-y: auto; }
 button.ui-button.timeline-menu-item { display: flex; width: 100%; justify-content: flex-start; padding-inline: 10px; font-size: 11px; gap: 10px; }

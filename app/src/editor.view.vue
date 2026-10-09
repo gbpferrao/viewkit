@@ -192,7 +192,7 @@ onBeforeUnmount(() => { cancelTimelineResize(); window.removeEventListener('resi
     </div>
     <footer class="app-footer">
       <span class="footer-message" role="status" :title="footerTip">{{ footerTip }}</span>
-      <span class="footer-metrics" aria-label="project status"><span v-if="editor.project.selection.length">{{ editor.project.selection.length }} selected <i>·</i> </span>{{ editor.project.clips.length }} clips <i>·</i> <span title="project duration">{{ formatTime(editor.project.end) }}</span> <i>·</i> {{ editor.project.stage.width }}×{{ editor.project.stage.height }} <i>·</i> 24 fps</span>
+      <span class="footer-metrics" aria-label="project status"><span v-if="editor.project.selection.length">{{ editor.project.selection.length }} selected <i>·</i> </span>{{ editor.project.clips.length }} clips <i>·</i> <span title="project duration">{{ formatTime(editor.project.end) }}</span> <i>·</i> {{ editor.project.stage.width }}×{{ editor.project.stage.height }}</span>
     </footer>
     <ExportPanel/>
     <div v-if="confirmClear" class="modal-backdrop" @click.self="confirmClear = false">
