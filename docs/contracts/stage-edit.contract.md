@@ -7,6 +7,7 @@ the stage row offers width/height swapping and a session aspect ratio lock. swap
 locking captures the current ratio. editing either dimension resizes both, bounded to valid dimensions before whole-pixel rounding.
 presets and swapping establish a new locked ratio. new project clears the lock; undo restores dimensions without changing this session preference.
 presets cover 16:9, 9:16, 1:1, 4:5, 4:3, 3:2, and 21:9 at named output sizes.
+lower-resolution landscape presets include 360p (640×360) and 480p (854×480, rounded to an even width for video encoding).
 Invalid or out-of-range input preserves the prior stage and shows feedback. No silent clamping changes invalid committed input.
 
 Video world dimensions retain source aspect ratio using a fixed 1280x720 reference fit. Changing output stage dimensions changes the crop and presentation fit, not the video's world dimensions or transform scale. Transform positions remain pixel offsets from stage center. DOM preview, GPU preview, selection geometry, and both export paths use the same stable world-size calculation.

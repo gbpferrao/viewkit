@@ -12,6 +12,8 @@ const presetsOpen = ref(false), presetsRoot = ref<HTMLElement>();
 const lockedRatio = ref<number | null>(null);
 const canSwap = computed(() => project.stage.height >= 320 && project.stage.width <= 2160);
 const stagePresets = [
+  { label: '16:9 · 360p', width: 640, height: 360 },
+  { label: '16:9 · 480p', width: 854, height: 480 },
   { label: '16:9 · 720p', width: 1280, height: 720 },
   { label: '16:9 · 1080p', width: 1920, height: 1080 },
   { label: 'portrait 9:16', width: 720, height: 1280 },
